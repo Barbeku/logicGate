@@ -129,8 +129,8 @@ function getConnectByCord(x, y){
     for(let j = 0; j < item.connects.length; j++){
       let connect = item.connects[j];
       if(
-        item.x + connect.x < x && item.x + connect.x + connect.w > x &&
-        item.y + connect.y < y && item.y + connect.y + connect.h > y
+        (item.x + connect.x) * zoom < x && (item.x + connect.x + connect.w) * zoom > x &&
+        (item.y + connect.y) * zoom < y && (item.y + connect.y + connect.h) * zoom > y
       ){
         return [i, j];
       }
@@ -174,12 +174,12 @@ document.addEventListener("mousedown", event => {
     }
   }
   else if(event.button === 0){
-    let x = event.clientX * zoom;
-    let y = event.clientY * zoom;
+    let x = event.clientX;
+    let y = event.clientY;
 
     let connectFromPos = getConnectByCord(x, y);
+    console.log(connectFromPos);
 
-    console.log(x, y);
 
     if(connectFromPos === false) return;
 
@@ -191,21 +191,21 @@ document.addEventListener("mousedown", event => {
     drawingLineFrom.x = (items[connectFromPos[0]].x + connectFrom.x + connectFrom.w / 2) * zoom;
     drawingLineFrom.y = (items[connectFromPos[0]].y + connectFrom.y + connectFrom.h / 2) * zoom;
 
-    cursorPosition.x = event.clientX * zoom;
-    cursorPosition.y = event.clientY * zoom;
+    cursorPosition.x = event.clientX;
+    cursorPosition.y = event.clientY;
 
     document.addEventListener("mousemove", mouseMove);
     function mouseMove(event){
-      cursorPosition.x = event.clientX * zoom;
-      cursorPosition.y = event.clientY * zoom;
+      cursorPosition.x = event.clientX;
+      cursorPosition.y = event.clientY;
     }
 
     document.addEventListener("mouseup", event => {
       document.removeEventListener("mousemove", mouseMove);
       isDrawingLine = false;
 
-      let x = event.clientX * zoom;
-      let y = event.clientY * zoom;
+      let x = event.clientX;
+      let y = event.clientY;
 
       let connectToPos = getConnectByCord(x, y);
 
@@ -225,8 +225,8 @@ document.addEventListener("mousedown", event => {
 
   }
   else if(event.button === 1){
-    let x = event.clientX * zoom;
-    let y = event.clientY * zoom;
+    let x = event.clientX;
+    let y = event.clientY;
 
     let connectPos = getConnectByCord(x, y);
 
@@ -237,8 +237,7 @@ document.addEventListener("mousedown", event => {
     let secondConnect;
 
     if(connect.from){
-      items[connect.from[0]].connects[connect.from[1]].to = "none";
-      connect.from = "none";
+      items[connect.from[0]].connects[connect.from[1]].to = "none"; connect.from = "none";
     }
     else if(connect.to){
       items[connect.to[0]].connects[connect.to[1]].from = "none";
@@ -419,8 +418,6 @@ function isWork(itemIndex){
   if(itemIndex === 'n') return 0;
 
   let item = items[itemIndex];
-  console.log(item);
-
 
   if(item.name.includes("LIGHT")){
     let sourceElementPos = item.connects[0].from;
