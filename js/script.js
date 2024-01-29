@@ -8,7 +8,7 @@ window.onresize = () => {
 window.onresize();
 
 var zoom = 1;
-var zoomStep = 0.01;
+var zoomStep = 0.02;
 
 let isDrawingLine = false;
 let drawingLineFrom = {x: 0, y: 0};
@@ -49,7 +49,12 @@ function drawItems(){
 
     ctx.beginPath();
     ctx.fillStyle = color;
-    ctx.fillRect(item.x, item.y, item.width, item.height);
+    ctx.fillRect(
+      item.x * zoom,
+      item.y * zoom,
+      item.width * zoom,
+      item.height * zoom
+    );
     ctx.closePath();
 
     for(let i = 0; i < item.connects.length; i++){
@@ -57,7 +62,12 @@ function drawItems(){
 
       ctx.beginPath();
       ctx.fillStyle = (connect.to == null) ? "black" : "gray";
-      ctx.fillRect(item.x + connect.x, item.y + connect.y, connect.w, connect.h);
+      ctx.fillRect(
+        (item.x + connect.x) * zoom,
+        (item.y + connect.y) * zoom,
+        connect.w * zoom,
+        connect.h * zoom
+      );
       ctx.closePath();
     }
   }
@@ -74,8 +84,14 @@ function drawItems(){
 
         let itemTo = items[connect.to[0]];
 
-        ctx.moveTo(item.x + connect.x + connect.w / 2, item.y + connect.y + connect.h / 2);
-        ctx.lineTo(itemTo.x + connectTo.x + connectTo.w / 2, itemTo.y + connectTo.y + connectTo.h / 2);
+        ctx.moveTo(
+          (item.x + connect.x + connect.w / 2) * zoom,
+          (item.y + connect.y + connect.h / 2) * zoom
+        );
+        ctx.lineTo(
+          (itemTo.x + connectTo.x + connectTo.w / 2) * zoom,
+          (itemTo.y + connectTo.y + connectTo.h / 2) * zoom
+        );
         ctx.stroke();
       }
     }
@@ -88,9 +104,16 @@ function getIndexItemByCord(x, y){
   for(let i = items.length - 1; i >= 0; i--){
     let item = items[i];
 
+//    console.log(
+//      'start: %f, %f\n  x: %d, y: %d \n to: %f, %f',
+//      item.x * zoom, item.y * zoom,
+//      x * zoom, y * zoom,
+//      (item.x * zoom + item.width * zoom), (item.y * zoom + item.height * zoom),
+//    );
+
     if(
-      item.x < x && item.x + item.width > x &&
-      item.y < y && item.y + item.height > y
+      (item.x * zoom) < x && (item.x * zoom + item.width * zoom) > x &&
+      (item.y * zoom) < y && (item.y * zoom + item.height * zoom) > y
     ){
       return i;
     }
@@ -128,8 +151,10 @@ document.addEventListener("mousedown", event => {
 
     if(index == undefined) return;
 
-    let relX = x - items[index].x;
-    let relY = y - items[index].y;
+    let relX = Math.abs((items[index].x * zoom - x) / (items[index].width * zoom));
+    let relY = Math.abs((items[index].y * zoom - y) / (items[index].height * zoom));
+    
+    
 
     document.addEventListener("mousemove", mouseMove);
     document.addEventListener("mouseup", mouseUp);
@@ -137,9 +162,10 @@ document.addEventListener("mousedown", event => {
     function mouseMove(mouseDownEvent){
       let x = mouseDownEvent.clientX;
       let y = mouseDownEvent.clientY;
+      console.log(relX);
 
-      items[index].x = x - relX;
-      items[index].y = y - relY;
+      items[index].x = (x / zoom) - (items[index].width * relX);
+      items[index].y = (y / zoom) - (items[index].height * relY);
     }
 
     function mouseUp(){
@@ -148,10 +174,12 @@ document.addEventListener("mousedown", event => {
     }
   }
   else if(event.button === 0){
-    let x = event.clientX;
-    let y = event.clientY;
+    let x = event.clientX * zoom;
+    let y = event.clientY * zoom;
 
     let connectFromPos = getConnectByCord(x, y);
+
+    console.log(x, y);
 
     if(connectFromPos === false) return;
 
@@ -160,24 +188,24 @@ document.addEventListener("mousedown", event => {
     if(!connectFrom.to) return;
 
     isDrawingLine = true;
-    drawingLineFrom.x = items[connectFromPos[0]].x + connectFrom.x + connectFrom.w / 2;
-    drawingLineFrom.y = items[connectFromPos[0]].y + connectFrom.y + connectFrom.h / 2;
+    drawingLineFrom.x = (items[connectFromPos[0]].x + connectFrom.x + connectFrom.w / 2) * zoom;
+    drawingLineFrom.y = (items[connectFromPos[0]].y + connectFrom.y + connectFrom.h / 2) * zoom;
 
-    cursorPosition.x = event.clientX;
-    cursorPosition.y = event.clientY;
+    cursorPosition.x = event.clientX * zoom;
+    cursorPosition.y = event.clientY * zoom;
 
     document.addEventListener("mousemove", mouseMove);
     function mouseMove(event){
-      cursorPosition.x = event.clientX;
-      cursorPosition.y = event.clientY;
+      cursorPosition.x = event.clientX * zoom;
+      cursorPosition.y = event.clientY * zoom;
     }
 
     document.addEventListener("mouseup", event => {
       document.removeEventListener("mousemove", mouseMove);
       isDrawingLine = false;
 
-      let x = event.clientX;
-      let y = event.clientY;
+      let x = event.clientX * zoom;
+      let y = event.clientY * zoom;
 
       let connectToPos = getConnectByCord(x, y);
 
@@ -197,8 +225,8 @@ document.addEventListener("mousedown", event => {
 
   }
   else if(event.button === 1){
-    let x = event.clientX;
-    let y = event.clientY;
+    let x = event.clientX * zoom;
+    let y = event.clientY * zoom;
 
     let connectPos = getConnectByCord(x, y);
 
@@ -452,10 +480,11 @@ document.addEventListener("click", ({target}) => {
 
 document.addEventListener("mousewheel", event => {
   if(event.deltaY === -100){
-    zoom -= zoomStep;
-  }
-  else if(event.deltaY === 100){
     zoom += zoomStep;
   }
-  console.log(zoom);
+  else if(event.deltaY === 100){
+    zoom -= zoomStep;
+  }
 });
+
+createSource();
