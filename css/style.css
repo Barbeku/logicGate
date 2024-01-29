@@ -1,0 +1,14 @@
+*{
+  overflow: hidden;
+}
+
+.scheme{
+  width: 100px;
+  height: 100px;
+  background: #ddd;
+  margin: 1rem;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
