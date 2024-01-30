@@ -1,3 +1,4 @@
+//TODO: удаление объектов и добавление их в корзину, переработка всех движений, подборка нормальных цветов, нормальное сохранение
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
@@ -52,7 +53,7 @@ function drawItems(){
       color = 'purple';
     }
 
-    if(item.name.includes("AND") && !item.name.includes("EX")){
+    if(item.name.includes("AND") && !item.name.includes("EX") && !item.name.includes("MEGA")){
       ctx.beginPath();
 
       let radius = item.height / 2;
@@ -407,6 +408,44 @@ function createElement(name){
         i++;
       }
       break;
+    case "MEGATREE":
+      x = 800;
+      color = "green";
+      width = 70;
+      height = 85;
+
+      return () => {
+        addItem(`${name}${i}`, x, (height + 2) * i, width, height, color, [
+          {name: "in1", x: 10, y: height / 2 - 5, w: 10, h: 10, run: 0, from: 'none'},
+          {name: "out1", x: width - 10, y: 0, w: 10, h: 10, run: 0, to: 'none'},
+          {name: "out2", x: width - 10, y: 15, w: 10, h: 10, to: 'none'},
+          {name: "out3", x: width - 10, y: 30, w: 10, h: 10, to: 'none'},
+          {name: "out4", x: width - 10, y: 45, w: 10, h: 10, to: 'none'},
+          {name: "out5", x: width - 10, y: 60, w: 10, h: 10, to: 'none'},
+          {name: "out4", x: width - 10, y: 75, w: 10, h: 10, to: 'none'},
+        ]);
+        i++;
+      }
+      break;
+    case "MEGAAND":
+      x = 900;
+      color = "brown";
+      width = 70;
+      height = 85;
+
+      return () => {
+        addItem(`${name}${i}`, x, (height + 2) * i, width, height, color, [
+          {name: "in1", x: 10, y: 0, w: 10, h: 10, run: 0, from: 'none'},
+          {name: "in2", x: 10, y: 15, w: 10, h: 10, run: 0, from: 'none'},
+          {name: "in3", x: 10, y: 30, w: 10, h: 10, from: 'none'},
+          {name: "in4", x: 10, y: 45, w: 10, h: 10, from: 'none'},
+          {name: "in5", x: 10, y: 60, w: 10, h: 10, from: 'none'},
+          {name: "in6", x: 10, y: 75, w: 10, h: 10, from: 'none'},
+          {name: "out", x: width - 20, y: height / 2 - 15, w: 10, h: 10, to: 'none'},
+        ]);
+        i++;
+      }
+      break;
   }
 
 
@@ -428,6 +467,8 @@ const createDisactiveSouce = createElement("DSOURCE");
 const createNot = createElement("NOT");
 const createLight = createElement("LIGHT");
 const createTree = createElement("TREE");
+const createMegaTree = createElement("MEGATREE");
+const createMegaAnd = createElement("MEGAAND");
 
 
 document.addEventListener('keydown', event => {
@@ -475,6 +516,12 @@ document.addEventListener('keydown', event => {
     case '7':
       createLight();
       break;
+    case '8':
+      createMegaTree();
+      break;
+    case '9':
+      createMegaAnd();
+      break;
     case '0':
       createTree();
       break;
@@ -507,6 +554,14 @@ function isWork(itemIndex){
     let in2 = item.connects[1].from;
 
     return isWork(in1[0]) & isWork(in2[0]);
+  }
+  else if(item.name.includes("MEGAAND")){
+    for(let i = 0; i < 6; i++){
+      if(isWork(item.connects[i].from[0])){
+        return 1;
+      }
+    }
+    return 0;
   }
   else if(item.name.includes("EX-AND")){
     let in1 = item.connects[0].from;
@@ -566,10 +621,3 @@ function mouseMove(event){
   cursorPosition.x = event.clientX;
   cursorPosition.y = event.clientY;
 }
-
-//createAnd();
-
-
-
-//test!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-//items = JSON.parse(localStorage.getItem("scheme2"));
