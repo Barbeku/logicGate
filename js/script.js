@@ -14,8 +14,8 @@ let isDrawingLine = false;
 let drawingLineFrom = {x: 0, y: 0};
 let cursorPosition = {x: 0, y: 0};
 
-var moveY = 100;
-var moveX = 100;
+var moveY = 0;
+var moveX = 0;
 
 var items = [];
 
@@ -42,6 +42,7 @@ function addItem(name, x, y, width, height, color, connects){
   items.push(newItem);
 }
 
+let k = 0.922;
 function drawItems(){
   for(let i = 0; i < items.length; i++){
     let item = items[i];
@@ -51,15 +52,69 @@ function drawItems(){
       color = 'purple';
     }
 
-    ctx.beginPath();
-    ctx.fillStyle = color;
-    ctx.fillRect(
-      item.x * zoom + moveX,
-      item.y * zoom + moveY,
-      item.width * zoom,
-      item.height * zoom
-    );
-    ctx.closePath();
+    if(item.name.includes("AND") && !item.name.includes("EX")){
+      ctx.beginPath();
+
+      let radius = item.height / 2;
+
+      ctx.arc(
+        (item.x * zoom + item.width * zoom - radius / 2) + moveX,
+        (item.y + radius) * zoom + moveY,
+        radius * zoom,
+        -1, 1
+      );
+      ctx.lineTo(
+        item.x * zoom + moveX,
+        (item.y + item.height * k) * zoom + moveY
+      );
+
+      ctx.arc(
+        (item.x - radius / 2) * zoom + moveX,
+        (item.y + radius) * zoom + moveY,
+        radius * zoom,
+        1, -1, true
+
+      );
+
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+    else if(item.name.includes("OR") && !item.name.includes("EX")){
+      ctx.beginPath();
+
+      let radius = item.height / 2;
+
+      ctx.arc(
+        (item.x + item.width - radius / 2) * zoom + moveX,
+        (item.y + radius) * zoom + moveY,
+        radius * zoom,
+        -1, 1
+      );
+      ctx.lineTo(
+        item.x * zoom + moveX,
+        (item.y + item.height * k) * zoom + moveY
+      );
+      ctx.lineTo(
+        item.x * zoom + moveX,
+        (item.y + item.height - item.height * k) * zoom + moveY
+      );
+
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+    else{
+      ctx.beginPath();
+      ctx.fillStyle = color;
+      ctx.fillRect(
+        item.x * zoom + moveX,
+        item.y * zoom + moveY,
+        item.width * zoom,
+        item.height * zoom
+      );
+      ctx.closePath();
+    }
 
     for(let i = 0; i < item.connects.length; i++){
       let connect = item.connects[i];
@@ -170,7 +225,6 @@ document.addEventListener("mousedown", event => {
 
     let relX = Math.abs((items[index].x) * zoom + moveX - x) / (items[index].width * zoom);
     let relY = Math.abs((items[index].y) * zoom + moveY - y) / (items[index].height * zoom);
-    console.log(relX);
     
     document.addEventListener("mousemove", mouseMove);
     document.addEventListener("mouseup", mouseUp);
@@ -273,8 +327,8 @@ function createElement(name){
 
   let x = 0;
 
-  let height = 80;
-  let width = 50;
+  let height = 70;
+  let width = 70;
 
   let connectsCount = 3;
 
@@ -284,7 +338,7 @@ function createElement(name){
       x = 0;
       break;
     case "AND":
-      color = "#ddd";
+      color = "#8df";
       x = 100;
       break;
     case "EX-AND":
@@ -358,9 +412,9 @@ function createElement(name){
 
   return () => {
     addItem(`${name}${i}`, x, (height + 2) * i, width, height, color, [
-      {name: "in1", x: 10, y: 10, w: 10, h: 10, run: 0, from: 'none'},
-      {name: "in2", x: 10, y: 50, w: 10, h: 10, run: 0, from: 'none'},
-      {name: "out", x: 30, y: 25, w: 10, h: 10, to: 'none', run: 0},
+      {name: "in1", x: 25, y: 15, w: 10, h: 10, run: 0, from: 'none'},
+      {name: "in2", x: 25, y: height - 25, w: 10, h: 10, run: 0, from: 'none'},
+      {name: "out", x: width, y: height / 2 - 5, w: 10, h: 10, to: 'none', run: 0},
     ]);
     i++;
   }
@@ -513,6 +567,9 @@ function mouseMove(event){
   cursorPosition.y = event.clientY;
 }
 
+//createAnd();
+
+
 
 //test!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-items = JSON.parse(localStorage.getItem("scheme2"));
+//items = JSON.parse(localStorage.getItem("scheme2"));
