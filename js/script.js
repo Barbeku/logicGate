@@ -1,6 +1,17 @@
-//TODO: удаление объектов и добавление их в корзину, переработка всех движений, подборка нормальных цветов, нормальное сохранение
+//TODO: сделать нормальным, а потом крутые проекты пытатся делать
+//TODO: удаление объектов и добавление их в корзину, переработка всех движений, подборка нормальных цветов, нормальное сохранение, ограничение зума
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
+
+function createMark(name){
+  let i = 0;
+
+  return () => {
+    console.log(`${name}${i++}`);
+  }
+}
+
+const mark = createMark('work');
 
 window.onresize = () => {
   canvas.width = innerWidth;
@@ -18,7 +29,13 @@ let cursorPosition = {x: 0, y: 0};
 var moveY = 0;
 var moveX = 0;
 
+var isDrawingAllWires = true;
+
 var items = [];
+
+var isMultiSelect = false;
+var startMultiSelectFrom = {x: 0, y: 0};
+var itemsInMultiSelect = [];
 
 var schemesBlock = document.getElementById("schemes");
 
@@ -41,6 +58,8 @@ function addItem(name, x, y, width, height, color, connects){
   }
 
   items.push(newItem);
+
+  return newItem;
 }
 
 let k = 0.922;
@@ -132,6 +151,7 @@ function drawItems(){
     }
   }
 
+  if(isDrawingAllWires === false) return;
   for(let i = 0; i < items.length; i++){
     let item = items[i];
     ctx.beginPath();
@@ -156,6 +176,19 @@ function drawItems(){
       }
     }
 
+    ctx.closePath();
+  }
+
+  if(isMultiSelect){
+    ctx.beginPath();
+    ctx.rect(
+      startMultiSelectFrom.x,
+      startMultiSelectFrom.y,
+      cursorPosition.x - startMultiSelectFrom.x,
+      cursorPosition.y - startMultiSelectFrom.y,
+    );
+    ctx.setLineDash([5, 15]);
+    ctx.stroke();
     ctx.closePath();
   }
 }
@@ -248,7 +281,6 @@ document.addEventListener("mousedown", event => {
     let y = event.clientY;
 
     let connectFromPos = getConnectByCord(x, y);
-    console.log(connectFromPos);
 
 
     if(connectFromPos === false) return;
@@ -272,12 +304,21 @@ document.addEventListener("mousedown", event => {
 
       if(connectToPos === false) return;
 
+      let item = items[connectToPos[0]];
+
       let connectTo = items[connectToPos[0]].connects[connectToPos[1]];
+
+      console.log(connectFromPos);
+      if(item.name.includes("LIGHT")){
+        console.log(item.connects[0]);
+        item.connects[0].from.push(connectFromPos);
+
+        connectFrom.to = connectToPos;
+        return;
+      }
 
       if(connectTo.to) return;
       if(items[connectToPos[0]] == items[connectFromPos[0]]) return;
-
-      console.log(connectTo);
 
       connectTo.from = connectFromPos;
       connectFrom.to = connectToPos;
@@ -309,6 +350,7 @@ document.addEventListener("mousedown", event => {
 
 function loop(){
   clearRect();
+  startToque();
   drawItems();
 
   if(isDrawingLine){
@@ -323,7 +365,7 @@ window.requestAnimationFrame(loop);
 
 
 function createElement(name){
-  let i = 0;
+  var i = 0;
   let color = "white";
 
   let x = 0;
@@ -348,11 +390,11 @@ function createElement(name){
       break;
     case "NOT":
       x = 300;
-      color = "#222";
+      color = "#aaa";
       width = 70;
       height = 40;
       return () => {
-        addItem(`${name}${i}`, x, (height + 2) * i, width, height, color, [
+        return addItem(`${name}${i}`, x, (height + 2) * i, width, height, color, [
           {name: "in1", x: 10, y: height / 2 - 5, w: 10, h: 10, run: 0, from: 'none'},
           {name: "out", x: width - 10, y: height / 2 - 5, w: 10, h: 10, to: 'none', run: 0},
         ]);
@@ -365,7 +407,7 @@ function createElement(name){
       width = height = 60;
       color = "#111";
       return () => {
-        addItem(`${name}${i}`, x, (height + 2) * i, width, height, color, [
+        return addItem(`${name}${i}`, x, (height + 2) * i, width, height, color, [
           {name: "out", x: 30, y: 25, w: 10, h: 10, to: 'none', run: 0},
         ]);
         i++;
@@ -376,7 +418,7 @@ function createElement(name){
       width = height = 60;
       color = "red";
       return () => {
-        addItem(`${name}${i}`, x, (height + 2) * i, width, height, color, [
+        return addItem(`${name}${i}`, x, (height + 2) * i, width, height, color, [
           {name: "out", x: 30, y: 25, w: 10, h: 10, to: 'none', run: 1},
         ]);
         i++;
@@ -387,8 +429,8 @@ function createElement(name){
       width = height = 40;
       color = "yellow";
       return () => {
-        addItem(`${name}${i}`, x, (height + 2) * i, width, height, color, [
-          {name: "in1", x: 10, y: 12, w: 10, h: 10, run: 0, from: 'none'},
+        return addItem(`${name}${i}`, x, (height + 2) * i, width, height, color, [
+          {name: "in1", x: 10, y: 12, w: 10, h: 10, run: 0, from: []},
         ]);
         i++;
       }
@@ -400,7 +442,7 @@ function createElement(name){
       height = 40;
 
       return () => {
-        addItem(`${name}${i}`, x, (height + 2) * i, width, height, color, [
+        return addItem(`${name}${i}`, x, (height + 2) * i, width, height, color, [
           {name: "in1", x: 10, y: 12, w: 10, h: 10, run: 0, from: 'none'},
           {name: "out1", x: width - 10, y: 0, w: 10, h: 10, run: 0, to: 'none'},
           {name: "out2", x: width - 10, y: height - 10, w: 10, h: 10, run: 0, to: 'none'},
@@ -415,7 +457,7 @@ function createElement(name){
       height = 85;
 
       return () => {
-        addItem(`${name}${i}`, x, (height + 2) * i, width, height, color, [
+        return addItem(`${name}${i}`, x, (height + 2) * i, width, height, color, [
           {name: "in1", x: 10, y: height / 2 - 5, w: 10, h: 10, run: 0, from: 'none'},
           {name: "out1", x: width - 10, y: 0, w: 10, h: 10, run: 0, to: 'none'},
           {name: "out2", x: width - 10, y: 15, w: 10, h: 10, to: 'none'},
@@ -434,7 +476,7 @@ function createElement(name){
       height = 85;
 
       return () => {
-        addItem(`${name}${i}`, x, (height + 2) * i, width, height, color, [
+        return addItem(`${name}${i}`, x, (height + 2) * i, width, height, color, [
           {name: "in1", x: 10, y: 0, w: 10, h: 10, run: 0, from: 'none'},
           {name: "in2", x: 10, y: 15, w: 10, h: 10, run: 0, from: 'none'},
           {name: "in3", x: 10, y: 30, w: 10, h: 10, from: 'none'},
@@ -450,7 +492,7 @@ function createElement(name){
 
 
   return () => {
-    addItem(`${name}${i}`, x, (height + 2) * i, width, height, color, [
+    return addItem(`${name}${i}`, x, (height + 2) * i, width, height, color, [
       {name: "in1", x: 25, y: 15, w: 10, h: 10, run: 0, from: 'none'},
       {name: "in2", x: 25, y: height - 25, w: 10, h: 10, run: 0, from: 'none'},
       {name: "out", x: width, y: height / 2 - 5, w: 10, h: 10, to: 'none', run: 0},
@@ -471,12 +513,33 @@ const createMegaTree = createElement("MEGATREE");
 const createMegaAnd = createElement("MEGAAND");
 
 
+function startToque(){
+  for(let i = 0; i < items.length; i++){
+    if(items[i].name.includes("LIGHT")){
+      isWork(i);
+    }
+  }
+}
+
 document.addEventListener('keydown', event => {
-  if(event.code.toLowerCase() === 'space'){
-    for(let i = 0; i < items.length; i++){
-      if(items[i].name.includes("LIGHT")){
-        isWork(i);
-      }
+  if(event.code.toLowerCase() === 'slash'){
+    isDrawingAllWires = !isDrawingAllWires;
+  }
+  else if(event.code.toLowerCase() === 'keyt'){
+    let index = getIndexItemByCord(cursorPosition.x, cursorPosition.y);
+
+    if(!index) return;
+
+    let item = items[index];
+    console.log(item);
+
+    if(item.name.includes("DSOURCE")){
+      item.name = "SOURCE";
+      item.color = "red";
+    }
+    else if(item.name.includes("SOURCE")){
+      item.name = "DSOURCE";
+      item.color = "#111";
     }
   }
   else if(event.code.toLowerCase() === 'keys'){
@@ -529,20 +592,23 @@ document.addEventListener('keydown', event => {
 })
 
 function isWork(itemIndex){
-  if(itemIndex === 'n') return 0;
+  if((typeof itemIndex) === 'string' || itemIndex === undefined) return 0;
 
   let item = items[itemIndex];
 
+
   if(item.name.includes("LIGHT")){
-    let sourceElementPos = item.connects[0].from;
-    let sourceElement = items[sourceElementPos[0]];
+    let array = item.connects[0].from;
 
-    let result = isWork(sourceElementPos[0]);
+    for(let i = 0; i < array.length; i++){
+      if(isWork(array[i][0])){
+        item.isLight = 1;
+        return 1;
+      }
+    }
+    item.isLight = 0;
+    return 0;
 
-    if(result === 1) item.isLight = 1;
-    else item.isLight = 0;
-
-    return result;
   }
   else if(item.name.includes("NOT")){
     let in1 = item.connects[0].from;
@@ -579,6 +645,7 @@ function isWork(itemIndex){
     return 0;
   }
   else if(item.name.includes("SOURCE")){
+    let in1 = item.connects[0].from;
     return 1;
   }
   else if(item.name.includes("TREE")){
@@ -603,16 +670,20 @@ document.addEventListener("mousewheel", event => {
     y: (innerHeight / 2),
   };
   let k = .1;
+  let t = 250;
+
+  let cursorX = (cursorPosition.x > center.x) ? cursorPosition.x + t : cursorPosition.x;
+  let cursorY = (cursorPosition.y > center.y) ? cursorPosition.y + t : cursorPosition.y;
   
   if(event.deltaY === -100){
     zoom += zoomStep;
-    moveX -= (cursorPosition.x - center.x) * k;
-    moveY -= (cursorPosition.y - center.y) * k;
+    moveX -= (cursorX - center.x) * k;
+    moveY -= (cursorY - center.y) * k;
   }
   else if(event.deltaY === 100){
     zoom -= zoomStep;
-    moveX += (cursorPosition.x - center.x) * k;
-    moveY += (cursorPosition.y - center.y) * k;
+    moveX += (cursorX - center.x) * k;
+    moveY += (cursorY - center.y) * k;
   }
 });
 
@@ -621,3 +692,85 @@ function mouseMove(event){
   cursorPosition.x = event.clientX;
   cursorPosition.y = event.clientY;
 }
+
+document.addEventListener("click", () => {
+  let isOverTime = false;
+
+  document.addEventListener("mousedown", mouseDown);
+
+  setTimeout(() => {
+    isOverTime = true;
+    document.removeEventListener("mousedown", mouseDown);
+  }, 200)
+
+  function mouseDown(event){
+    isMultiSelect = true;
+
+    startMultiSelectFrom.x = event.clientX;
+    startMultiSelectFrom.y = event.clientY;
+    document.addEventListener("mouseup", mouseUp, { once: true });
+
+
+    function mouseUp(mouseUpEvent){
+      itemsInMultiSelect = [];
+      isMultiSelect = false; //убрать бы
+      let x = mouseUpEvent.clientX;
+      let y = mouseUpEvent.clientY;
+      mark();
+
+      //в один прямоугольник превратить выделение и так чекать вхождение в него
+      for(item of items){
+        if(
+          (item.x > startMultiSelectFrom.x) &&
+          ((item.x + item.width) < x) &&
+          (item.y > startMultiSelectFrom.y) &&
+          ((item.y + item.height) < y)
+          ||
+          ((item.x + item.width) < startMultiSelectFrom.x) &&
+          (item.x > x) &&
+          ((item.y + item.height) > startMultiSelectFrom.y) &&
+          (item.y < y)
+        ){
+          console.log(item);
+          itemsInMultiSelect.push(item);
+        }
+      }
+    }
+  }
+})
+
+
+/*
+for(let i = 0; i < 7; i++){
+  for(let j = 0; j < 51; j++){
+    let item = createMegaTree();
+    item.x = 900 + i * 100;
+    item.y = j * 87;
+  }
+}
+*/
+
+/*
+for(let i = 0; i < items.length; i++){
+  let item = items[i];
+
+  if(item.name.includes("MEGATREE")){
+    if(item.connects[6].to === 'none'){
+      item.connects[6].to === [i + 1, 0];
+      items[i + 1].connects[0].from = [i, 6]
+    }
+  }
+}
+*/
+
+/*
+for(let j = 0; j < 12; j++){
+
+  for(let i = 0; i < 5; i++){
+    let item = createLight();
+    item.x = 2550 + j * 50;
+    item.y = i * 50;
+  }
+}
+*/
+
